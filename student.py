@@ -51,7 +51,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
 
                 # Next lines are only for the Human Agent, the key values are nonetheless the correct ones!
-                key = ""
+                key = "a"
                 # for event in list(pygame.event.get()) + run_ai():
                 #     if event.type == pygame.QUIT:
                 #         pygame.quit()
@@ -74,8 +74,9 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 piece=state['piece']
                 game=state['game']
                 print(piece)
-                print(game)
+                #print(game)
                 print(get_piece(piece))
+                print(get_rows(game))
                 #print(I)
                 #print(get_all_positions(piece))
                 # print(len(get_all_positions(piece))==(len(vectors)*2))
@@ -167,9 +168,14 @@ def get_piece(piece):
 
     return 'Not found'
 
+def get_rows(game):
+    rows=[[0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0]]
 
-
-        
+    for p in game:
+        rows[p[1]][p[0]] = 1    
+    return rows
 
 # DO NOT CHANGE THE LINES BELLOW
 # You can change the default values using the command line, example:
