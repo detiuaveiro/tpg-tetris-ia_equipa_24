@@ -3,9 +3,10 @@ import getpass
 import json
 from logging import NullHandler
 import os
+import websockets
+
 import game
 from shape import SHAPES 
-import websockets
 
 # Next 4 lines are not needed for AI agents, please remove them from your code!
 import pygame
@@ -51,7 +52,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
 
                 # Next lines are only for the Human Agent, the key values are nonetheless the correct ones!
-                key = "a"
+                key = ""
                 # for event in list(pygame.event.get()) + run_ai():
                 #     if event.type == pygame.QUIT:
                 #         pygame.quit()
@@ -70,14 +71,16 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 #             import pprint
 
                 #             pprint.pprint(state)
-                
+
+
+
                 piece=state['piece']
                 game=state['game']
                 print(piece)
-                #print(game)
-                print(get_piece(piece))
-                print(get_rows(game))
-                #print(I)
+                print(game)
+                #print(get_piece(piece))
+                #print(get_rows(game))
+                print(get_height(game))
                 #print(get_all_positions(piece))
                 # print(len(get_all_positions(piece))==(len(vectors)*2))
                 
@@ -176,6 +179,20 @@ def get_rows(game):
     for p in game:
         rows[p[1]][p[0]] = 1    
     return rows
+
+def numberOfHoles(row):
+    count = 0
+    for pos in row:
+        if pos == 0:
+            count += 1
+    return count
+
+def get_height(game):
+    height = 30
+    for p in game:
+        if p[1] < height:
+            height = p[1]
+    return 30 - height 
 
 # DO NOT CHANGE THE LINES BELLOW
 # You can change the default values using the command line, example:
