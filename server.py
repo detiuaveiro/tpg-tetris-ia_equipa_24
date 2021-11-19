@@ -58,7 +58,9 @@ class GameServer:
         )
 
         self._highscores.append((self.current_player.name, score))
-        self._highscores = sorted(self._highscores, key=lambda s: s[1], reverse=True)[:MAX_HIGHSCORES]
+        self._highscores = sorted(self._highscores, key=lambda s: s[1], reverse=True)[
+            :MAX_HIGHSCORES
+        ]
 
         print(self._highscores)
 
@@ -82,6 +84,8 @@ class GameServer:
         try:
             async for message in websocket:
                 data = json.loads(message)
+                if not "cmd" in data:
+                    continue
                 if data["cmd"] == "join":
                     if path == "/player":
                         logger.info("<%s> has joined", data["name"])
@@ -90,8 +94,9 @@ class GameServer:
                     if path == "/viewer":
                         logger.info("Viewer connected")
                         self.viewers.add(websocket)
-                        game_info = self.game.info()
-                        await websocket.send(json.dumps(game_info))
+
+                    game_info = self.game.info()
+                    await websocket.send(json.dumps(game_info))
 
                 if data["cmd"] == "key" and self.current_player.ws == websocket:
                     logger.debug((self.current_player.name, data))
@@ -128,6 +133,7 @@ class GameServer:
 
                 while self.game.running:
                     state = await self.game.loop()
+                    state["player"] = self.current_player.name
 
                     state = json.dumps(state)
 
@@ -139,7 +145,8 @@ class GameServer:
                 self.save_highscores(self.game.score)
 
                 game_info = self.game.info()
-                game_info["score"] = self.game.score
+                game_info["player"] = self.current_player.name
+
                 await self.send_info(game_info, highscores=True)
                 await self.current_player.ws.close()
                 self.current_player = None
