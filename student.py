@@ -27,43 +27,56 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         SPRITES = pygame.image.load("data/pad.png").convert_alpha()
         SCREEN.blit(SPRITES, (0, 0))
 
-        state = json.loads(
-                    await websocket.recv()
-                )  # receive game update, this must be called timely or your game will get out of sync with the server
-        piece=state['piece']
-        game=state['game']
-        print(get_piece(piece))
-        ideal_pos_piece = simulate_all_possibilities(piece,game)
-        print(ideal_pos_piece)
-        translate = compare_pieces(piece, ideal_pos_piece)
-        keys = get_keys(translate)
-        print(keys)
+        # state = json.loads(
+        #             await websocket.recv()
+        #         )  # receive game update, this must be called timely or your game will get out of sync with the server
+        #print(state)
+        # piece=state["piece"]
+        # game=state["game"]
+        # print(get_piece(piece))
+        # ideal_pos_piece = simulate_all_possibilities(piece,game)
+        # print(ideal_pos_piece)
+        # translate = compare_pieces(piece, ideal_pos_piece)
+        # keys = get_keys(translate)
+        # print(keys)
 
-        for key in keys:
-            state = json.loads(
-                    await websocket.recv()
-                )  # receive game update, this must be called timely or your game will get out of sync with the server                
-            await websocket.send(
-                json.dumps({"cmd": "key", "key": key})
-            )  # send key command to server - you must implement this send in the AI agent
+        # for key in keys:
+        #     state = json.loads(
+        #             await websocket.recv()
+        #         )  # receive game update, this must be called timely or your game will get out of sync with the server                
+        #     await websocket.send(
+        #         json.dumps({"cmd": "key", "key": key})
+        #     )  # send key command to server - you must implement this send in the AI agent
         
         while True:
             try:
                 state = json.loads(
                     await websocket.recv()
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
-                piece=state['piece']
-                game=state['game']
+                piece = None
+                # game=[]
+                #print(state)
+                if 'piece' in state: # and "game" in state:
+                    piece=state['piece']
+                    game=state['game']
+                
                 flag = False
                 
-                if(piece == None):
-                    #print(get_piece(piece))
-                    next_piece = state['next_pieces'][0]
-                    ideal_pos_piece = simulate_all_possibilities(next_piece,game)
+                while(piece == None):
+                    state = json.loads(
+                        await websocket.recv()
+                    )  # receive game update, this must be called timely or your game will get out of sync with the server
+                    piece=state['piece']
+                    game=state['game']
+                    print(piece)
+                    print(get_rows(game))
+                    
+                    ideal_pos_piece = simulate_all_possibilities(piece,game)
                     print(ideal_pos_piece)
-                    translate = compare_pieces(next_piece, ideal_pos_piece)
+                    translate = compare_pieces(piece, ideal_pos_piece)
                     keys = get_keys(translate)
                     print(keys)
+                    print("\n")
                     flag = True
 
                 if(flag):
@@ -74,8 +87,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         await websocket.send(
                             json.dumps({"cmd": "key", "key": key})
                         )  # send key command to server - you must implement this send in the AI agent
-                        
-                
 
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
@@ -291,16 +302,17 @@ def simulate_all_possibilities(piece, game):
         scores.append(score)
 
     pos = scores.index(max(scores))
+    print(scores)
     piece = translate(original_piece, pos)
     return piece
 
 
 
 def calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness):
-    a = -0,51006
-    b = 0,760666
-    c = -0,35663
-    d = -0,184483
+    a = -0.51006
+    b = 0.760666
+    c = -0.35663
+    d = -0.184483
     return total_height*a + completeLines*b + numberOfHoles*c + bumpiness*d
 
 def translate(piece, value):

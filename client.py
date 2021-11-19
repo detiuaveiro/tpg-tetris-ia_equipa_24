@@ -29,7 +29,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 state = json.loads(
                     await websocket.recv()
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
-
+                print(state)
                 # Next lines are only for the Human Agent, the key values are nonetheless the correct ones!
                 key = ""
                 for event in pygame.event.get():
@@ -55,6 +55,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                             json.dumps({"cmd": "key", "key": key})
                         )  # send key command to server - you must implement this send in the AI agent
                         break
+
             except websockets.exceptions.ConnectionClosedOK:
                 print("Server has cleanly disconnected us")
                 return
