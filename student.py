@@ -5,8 +5,9 @@ from logging import NullHandler
 import os
 import websockets
 
-import game
-from shape import SHAPES 
+# import game
+# from shape import SHAPES 
+from copy import deepcopy
 
 # Next 4 lines are not needed for AI agents, please remove them from your code!
 import pygame
@@ -26,50 +27,54 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
         SPRITES = pygame.image.load("data/pad.png").convert_alpha()
         SCREEN.blit(SPRITES, (0, 0))
 
+        state = json.loads(
+                    await websocket.recv()
+                )  # receive game update, this must be called timely or your game will get out of sync with the server
+        piece=state['piece']
+        game=state['game']
+        print(get_piece(piece))
+        ideal_pos_piece = simulate_all_possibilities(piece,game)
+        print(ideal_pos_piece)
+        translate = compare_pieces(piece, ideal_pos_piece)
+        keys = get_keys(translate)
+        print(keys)
+
+        for key in keys:
+            state = json.loads(
+                    await websocket.recv()
+                )  # receive game update, this must be called timely or your game will get out of sync with the server                
+            await websocket.send(
+                json.dumps({"cmd": "key", "key": key})
+            )  # send key command to server - you must implement this send in the AI agent
+        
         while True:
             try:
                 state = json.loads(
                     await websocket.recv()
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
-
                 piece=state['piece']
                 game=state['game']
-                print(piece)
-                #print(game)
-                #print(get_piece(piece))
-                print(get_rows(game))
-                #print(get_aggregate_height(game))
-                print(numberOfHoles(game))
-                #print(numberOfHoles(game))
-                #print(get_all_positions(piece))
-                # print(len(get_all_positions(piece))==(len(vectors)*2))
-
-                # Next lines are only for the Human Agent, the key values are nonetheless the correct ones!
-                key = ""
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_UP:
-                            key = "w"
-                        elif event.key == pygame.K_LEFT:
-                            key = "a"
-                        elif event.key == pygame.K_DOWN:
-                            key = "s"
-                        elif event.key == pygame.K_RIGHT:
-                            key = "d"
-
-                        elif event.key == pygame.K_d:
-                            import pprint
-
-                            #pprint.pprint(state)
-
+                flag = False
                 
+                if(piece == None):
+                    #print(get_piece(piece))
+                    next_piece = state['next_pieces'][0]
+                    ideal_pos_piece = simulate_all_possibilities(next_piece,game)
+                    print(ideal_pos_piece)
+                    translate = compare_pieces(next_piece, ideal_pos_piece)
+                    keys = get_keys(translate)
+                    print(keys)
+                    flag = True
+
+                if(flag):
+                    for key in keys:            
+                        state = json.loads(
+                            await websocket.recv()
+                        )  # receive game update, this must be called timely or your game will get out of sync with the server    
                         await websocket.send(
                             json.dumps({"cmd": "key", "key": key})
                         )  # send key command to server - you must implement this send in the AI agent
-                        break
+                        
                 
 
             except websockets.exceptions.ConnectionClosedOK:
@@ -149,7 +154,7 @@ def get_piece(piece):
                 return 'J'
             elif p == O:
                 return 'O'
-            else:
+            elif p == 'Z':
                 return 'Z'
 
     return 'Not found'
@@ -220,7 +225,7 @@ def get_bumpiness(game):
 #         totalHoles += holesColumn
 #     return holesPerColumn
 
-def numberOfHoles(game):
+def get_numberOfHoles(game):
     rows = get_rows(game)
     columns_heigths = get_columns_height(game)
     for x in range(8):
@@ -245,11 +250,79 @@ def complete_lines(game):
 
 
 def simulate_fall(piece, game):
-    sim_game = game
-    for block in piece:
-        a = 0
-    return 0
+    sim_game = deepcopy(game)
+    piece_clone = deepcopy(piece)
+    while piece_clone[0][1] < 29 and piece_clone[1][1] < 29 and piece_clone[2][1] < 29 and piece_clone[3][1] < 29 :
+        for block in piece_clone:
+            block[1] = block[1] + 1
+    
+        for block in piece_clone:
+            if block in game:
+                for block in piece_clone:
+                    block[1] = block[1] - 1
+                
+                sim_game += piece_clone
+                return sim_game
+    sim_game += piece_clone
+    return sim_game 
 
+def simulate_all_possibilities(piece, game):
+    x_min = 8
+    x_max = 0
+    for block in piece:     #check the minimum and maximum x coordenate of the blocks 
+        if block[0] < x_min:
+            x_min = block[0]
+        if block[0] > x_max:
+            x_max = block[0]
+    
+    #width = x_max - x_min
+    ini_translate = 1 - x_min
+    piece = translate(piece, ini_translate - 1)
+    original_piece = translate(piece,1)
+    scores=[]
+    while piece[0][0] < 8 and piece[1][0] < 8 and piece[2][0] < 8 and piece[3][0] < 8:
+        piece = translate(piece, 1)
+        game1 = simulate_fall(piece, game)
+        total_height = get_aggregate_height(game1)
+        completeLines = complete_lines(game1)
+        numberOfHoles = get_numberOfHoles(game1)
+        bumpiness = get_bumpiness(game1)
+        score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
+        scores.append(score)
+
+    pos = scores.index(max(scores))
+    piece = translate(original_piece, pos)
+    return piece
+
+
+
+def calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness):
+    a = -0,51006
+    b = 0,760666
+    c = -0,35663
+    d = -0,184483
+    return total_height*a + completeLines*b + numberOfHoles*c + bumpiness*d
+
+def translate(piece, value):
+    piece_clone = deepcopy(piece)
+    for block in piece_clone:
+        block[0] += value
+    return piece_clone
+
+def compare_pieces(original_piece, new_piece):
+    translate = new_piece[0][0] - original_piece[0][0]
+    return translate
+
+def get_keys(translate):
+    keys = []
+    if translate < 0:
+        for i in range(abs(translate)):
+            keys.append("a")
+    elif translate > 0:
+        for i in range(translate):
+            keys.append("d")
+    keys.append("s")
+    return keys
 
 # DO NOT CHANGE THE LINES BELLOW
 # You can change the default values using the command line, example:
