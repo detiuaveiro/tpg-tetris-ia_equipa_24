@@ -165,7 +165,7 @@ def get_piece(piece):
                 return 'J'
             elif p == O:
                 return 'O'
-            elif p == 'Z':
+            elif p == Z:
                 return 'Z'
 
     return 'Not found'
@@ -335,6 +335,105 @@ def get_keys(translate):
             keys.append("d")
     keys.append("s")
     return keys
+
+def rotate(piece, type_piece, numOfrotations):
+    #type_piece = get_piece(piece)
+    #print(type_piece)
+    piece = deepcopy(piece)
+    center = [0,0]     
+    if type_piece == 'O':
+        return piece
+    elif type_piece == 'T':
+        #center = get_center(piece, type_piece)
+        center = piece[1]
+        for i in range(numOfrotations):
+            for block in piece:
+                if block != center:
+                    if block[0] == center[0] and block[1] < center[1]:
+                        block[0] += 1
+                        block[1] += 1
+                    elif block[0] > center[0] and block[1] == center[1]:
+                        block[0] -= 1
+                        block[1] += 1
+                    elif block[0] == center[0] and block[1] > center[1]:
+                        block[0] -= 1
+                        block[1] -= 1
+                    elif block[0] < center[0] and block[1] == center[1]:
+                        block[0] += 1
+                        block[1] -= 1
+        return piece
+    elif type_piece == 'S':
+        #center = get_center(piece, type_piece)
+        center = piece[1]
+        if numOfrotations % 2 != 0:
+            for block in piece:
+                if block != center:         # atençao à ordem das peças
+                    if block[0] == center[0] and block[1] == center[1] - 1:
+                        block[0] -= 1
+                        block[1] += 2
+                    if block[0] == center[0] + 1 and block[1] == center[1] + 1:
+                        block[0] -= 1
+        return piece
+    elif type_piece == 'Z':
+        #center = get_center(piece, type_piece)
+        center = piece[2]
+        if numOfrotations % 2 != 0:
+            for block in piece:
+                if block != center:         # atençao à ordem das peças
+                    if block[0] == center[0] and block[1] == center[1] - 1:
+                        block[0] += 1
+                        block[1] += 2
+                    if block[0] == center[0] - 1 and block[1] == center[1] + 1:
+                        block[0] += 1
+        return piece
+    elif type_piece == 'L' or type_piece == 'J':
+        #center = get_center(piece, type_piece)
+        if type_piece == 'L':
+            center = piece[1]  
+        elif type_piece == 'J':
+            center = piece[2]      
+        
+        for i in range(numOfrotations):
+            for block in piece:
+                if block != center:
+                    if block[0] == center[0] and block[1] < center[1]:
+                        block[0] += 1
+                        block[1] += 1 
+                    elif block[0] > center[0] and block[1] == center[1]:
+                        block[0] -= 1 
+                        block[1] += 1 
+                    elif block[0] == center[0] and block[1] > center[1]:
+                        block[0] -= 1
+                        block[1] -= 1
+                    elif block[0] < center[0] and block[1] == center[1]:
+                        block[0] += 1
+                        block[1] -= 1
+                    else:
+                        if block[0] > center[0] and block[1] < center[1]:        # trata se do bloco "cauda", o unico que nao está diretamente conectado ao centro 
+                            block[1] += 2
+                        elif block[0] > center[0] and block[1] > center[1]:
+                            block[0] -= 2
+                        elif block[0] < center[0] and block[1] > center[1]:
+                            block[1] -= 2
+                        elif block[0] < center[0] and block[1] < center[1]:
+                            block[0] += 2
+        return piece
+    elif type_piece == 'I':
+        #center = get_center(piece, type_piece)
+        center = piece[2]                              
+        if numOfrotations % 2 != 0:    
+            for block in piece:
+                if block != center:
+                    if block[0] == center[0] - 2:
+                        block[0] += 2
+                        block[1] -= 2
+                    elif block[0] == center[0] - 1:
+                        block[0] += 1
+                        block[1] -= 1
+                    else:
+                        block[0] -= 1
+                        block[1] += 1
+        return piece
 
 # DO NOT CHANGE THE LINES BELLOW
 # You can change the default values using the command line, example:
