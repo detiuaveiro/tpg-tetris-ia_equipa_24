@@ -55,36 +55,31 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
                 piece = None
                 # game=[]
-                print(state['score'])
+                #print(state)
                 if 'piece' in state: # and "game" in state:
                     piece=state['piece']
                     game=state['game']
                 
                 flag = False
                 
-                if(piece == None):
+                while(piece == None):
                     state = json.loads(
                         await websocket.recv()
                     )  # receive game update, this must be called timely or your game will get out of sync with the server
                     if 'piece' in state: # and "game" in state:
                         piece=state['piece']
                         game=state['game']
-                        type_piece = get_piece(piece)
-                    #print("Piece: ")
-                    #print(piece)
-                    #print(get_piece(piece))
+                    print(piece)
+                    print(get_piece(piece))
                     #print(get_rows(game))
-                    if piece != None:
-                        ideal_pos_rot_piece = simulate_all_possibilities(piece,game, type_piece)
-                    #print("Ideal Piece: ")
-                    #print(ideal_pos_rot_piece[0])
-                    #print(ideal_pos_rot_piece[1])
-                    #if ideal_pos_rot_piece != None:
-                        translate = compare_pieces(rotate(piece, type_piece, ideal_pos_rot_piece[1]), ideal_pos_rot_piece[0])
-                        keys = get_keys(translate, ideal_pos_rot_piece[1])
-                    #print(keys)
-                    #print("\n")
-                        flag = True
+                    
+                    ideal_pos_piece = simulate_all_possibilities(piece,game)
+                    print(ideal_pos_piece)
+                    translate = compare_pieces(piece, ideal_pos_piece)
+                    keys = get_keys(translate)
+                    print(keys)
+                    print("\n")
+                    flag = True
 
                 if(flag):
                     for key in keys:            
@@ -193,105 +188,34 @@ def get_rows(game):
 def get_center(piece, type_piece):
     return [0, 0]
 
-def rotate(piece, type_piece, numOfrotations):
-    #type_piece = get_piece(piece)
-    #print(type_piece)
-    piece = deepcopy(piece)
-    center = [0,0]     
+def rotate(piece):
+    type_piece = get_piece(piece)
+    piece = deepcopy(piece)     
     if type_piece == 'O':
         return piece
-    elif type_piece == 'T':
-        #center = get_center(piece, type_piece)
-        center = piece[1]
-        for i in range(numOfrotations):
-            for block in piece:
-                if block != center:
-                    if block[0] == center[0] and block[1] < center[1]:
-                        block[0] += 1
-                        block[1] += 1
-                    elif block[0] > center[0] and block[1] == center[1]:
-                        block[0] -= 1
-                        block[1] += 1
-                    elif block[0] == center[0] and block[1] > center[1]:
-                        block[0] -= 1
-                        block[1] -= 1
-                    elif block[0] < center[0] and block[1] == center[1]:
-                        block[0] += 1
-                        block[1] -= 1
-        return piece
-    elif type_piece == 'S':
-        #center = get_center(piece, type_piece)
-        center = piece[1]
-        if numOfrotations % 2 != 0:
-            for block in piece:
-                if block != center:         # atençao à ordem das peças
-                    if block[0] == center[0] and block[1] == center[1] - 1:
-                        block[0] -= 1
-                        block[1] += 2
-                    if block[0] == center[0] + 1 and block[1] == center[1] + 1:
-                        block[0] -= 1
-        return piece
-    elif type_piece == 'Z':
-        #center = get_center(piece, type_piece)
-        center = piece[2]
-        if numOfrotations % 2 != 0:
-            for block in piece:
-                if block != center:         # atençao à ordem das peças
-                    if block[0] == center[0] and block[1] == center[1] - 1:
-                        block[0] += 1
-                        block[1] += 2
-                    if block[0] == center[0] - 1 and block[1] == center[1] + 1:
-                        block[0] += 1
-        return piece
-    elif type_piece == 'L' or type_piece == 'J':
-        #center = get_center(piece, type_piece)
-        if type_piece == 'L':
-            center = piece[1]  
-        elif type_piece == 'J':
-            center = piece[2]      
-        
-        for i in range(numOfrotations):
-            for block in piece:
-                if block != center:
-                    if block[0] == center[0] and block[1] < center[1]:
-                        block[0] += 1
-                        block[1] += 1 
-                    elif block[0] > center[0] and block[1] == center[1]:
-                        block[0] -= 1 
-                        block[1] += 1 
-                    elif block[0] == center[0] and block[1] > center[1]:
-                        block[0] -= 1
-                        block[1] -= 1
-                    elif block[0] < center[0] and block[1] == center[1]:
-                        block[0] += 1
-                        block[1] -= 1
-                    else:
-                        if block[0] > center[0] and block[1] < center[1]:        # trata se do bloco "cauda", o unico que nao está diretamente conectado ao centro 
-                            block[1] += 2
-                        elif block[0] > center[0] and block[1] > center[1]:
-                            block[0] -= 2
-                        elif block[0] < center[0] and block[1] > center[1]:
-                            block[1] -= 2
-                        elif block[0] < center[0] and block[1] < center[1]:
-                            block[0] += 2
-        return piece
-    elif type_piece == 'I':
-        #center = get_center(piece, type_piece)
-        center = piece[2]                              
-        if numOfrotations % 2 != 0:    
-            for block in piece:
-                if block != center:
-                    if block[0] == center[0] - 2:
-                        block[0] += 2
-                        block[1] -= 2
-                    elif block[0] == center[0] - 1:
-                        block[0] += 1
-                        block[1] -= 1
-                    else:
-                        block[0] -= 1
-                        block[1] += 1
+    if type_piece == 'T':
+        center = get_center(piece, type_piece)
+        for block in piece:
+            if block != center:
+                if block[0] == center[0] and block[1] < center[1]:
+                    block[0] += 1
+                    block[1] += 1
+                elif block[0] > center[0] and block[1] == center[1]:
+                    block[0] -= 1
+                    block[1] += 1
+                elif block[0] == center[0] and block[1] > center[1]:
+                    block[0] -= 1
+                    block[1] -= 1
+                elif block[0] < center[0] and block[1] == center[1]:
+                    block[0] += 1
+                    block[1] -= 1
         return piece
     
+
+
+        
+
+
 
 def get_aggregate_height(game):
     rows = get_rows(game)
@@ -380,69 +304,35 @@ def simulate_fall(piece, game):
     sim_game += piece_clone
     return sim_game 
 
-def simulate_all_possibilities(piece, game, type_piece):
+def simulate_all_possibilities(piece, game):
     if piece == None:
         return None
-    original_piece_real = piece
-    #type_piece = get_piece(piece)
-    numbOfrotations=0
-    iterations = 1
-    original_piece = []
-    scores=[]
-    total_numberOfpositions=[]
-    if type_piece == 'O':
-        numbOfrotations = 0
-    elif type_piece == 'I' or type_piece == 'S' or type_piece == 'Z':
-        numbOfrotations = 1
-    else:
-        numbOfrotations = 3
-
-    iterations = numbOfrotations + 1
-        
-    for i in range(iterations):
-        if i > 0:
-            piece = rotate(original_piece_real, type_piece, i)
-        
-        x_min = 8
-        x_max = 0
-        for block in piece:     #check the minimum and maximum x coordenate of the blocks 
-            if block[0] < x_min:
-                x_min = block[0]
-            if block[0] > x_max:
-                x_max = block[0]
-        
-        #width = x_max - x_min
-        ini_translate = 1 - x_min
-        piece = translate(piece, ini_translate - 1)
-        original_piece.append(translate(piece,1))
-        numberOfpositions = 0
-        while piece[0][0] < 8 and piece[1][0] < 8 and piece[2][0] < 8 and piece[3][0] < 8:
-            piece = translate(piece, 1)
-            game1 = simulate_fall(piece, game)
-            total_height = get_aggregate_height(game1)
-            completeLines = complete_lines(game1)
-            numberOfHoles = get_numberOfHoles(game1)
-            bumpiness = get_bumpiness(game1)
-            score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
-            scores.append(score)
-            numberOfpositions += 1
-        total_numberOfpositions.append(numberOfpositions)
-
-    ind = scores.index(max(scores))
-    numberOfpossibilities = len(scores)
-    if ind < total_numberOfpositions[0]:
-        piece = translate(original_piece[0], ind)
-        return [piece, 0]                       # Retorna a peça e o numero de rotaçoes a executar
-    elif ind < total_numberOfpositions[0] + total_numberOfpositions[1]:
-        piece = translate(original_piece[1], ind - total_numberOfpositions[0])
-        return [piece, 1]
-    elif ind < total_numberOfpositions[0] + total_numberOfpositions[1] + total_numberOfpositions[2]:
-        piece = translate(original_piece[2], ind - (total_numberOfpositions[0] + total_numberOfpositions[1]))
-        return [piece, 2]
-    else:
-        piece = translate(original_piece[3], ind - (total_numberOfpositions[0] + total_numberOfpositions[1] + total_numberOfpositions[2]))
-        return [piece, 3]
+    x_min = 8
+    x_max = 0
+    for block in piece:     #check the minimum and maximum x coordenate of the blocks 
+        if block[0] < x_min:
+            x_min = block[0]
+        if block[0] > x_max:
+            x_max = block[0]
     
+    #width = x_max - x_min
+    ini_translate = 1 - x_min
+    piece = translate(piece, ini_translate - 1)
+    original_piece = translate(piece,1)
+    scores=[]
+    while piece[0][0] < 8 and piece[1][0] < 8 and piece[2][0] < 8 and piece[3][0] < 8:
+        piece = translate(piece, 1)
+        game1 = simulate_fall(piece, game)
+        total_height = get_aggregate_height(game1)
+        completeLines = complete_lines(game1)
+        numberOfHoles = get_numberOfHoles(game1)
+        bumpiness = get_bumpiness(game1)
+        score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
+        scores.append(score)
+
+    pos = scores.index(max(scores))
+    piece = translate(original_piece, pos)
+    return piece
 
 def calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness):
     a = -0.51006
@@ -463,10 +353,8 @@ def compare_pieces(original_piece, new_piece):
     translate = new_piece[0][0] - original_piece[0][0]
     return translate
 
-def get_keys(translate, numberOfrotations):
+def get_keys(translate):
     keys = []
-    for i in range(numberOfrotations):
-        keys.append("w")
     if translate < 0:
         for i in range(abs(translate)):
             keys.append("a")
@@ -475,105 +363,6 @@ def get_keys(translate, numberOfrotations):
             keys.append("d")
     keys.append("s")
     return keys
-
-def rotate(piece, type_piece, numOfrotations):
-    #type_piece = get_piece(piece)
-    #print(type_piece)
-    piece = deepcopy(piece)
-    center = [0,0]     
-    if type_piece == 'O':
-        return piece
-    elif type_piece == 'T':
-        #center = get_center(piece, type_piece)
-        center = piece[1]
-        for i in range(numOfrotations):
-            for block in piece:
-                if block != center:
-                    if block[0] == center[0] and block[1] < center[1]:
-                        block[0] += 1
-                        block[1] += 1
-                    elif block[0] > center[0] and block[1] == center[1]:
-                        block[0] -= 1
-                        block[1] += 1
-                    elif block[0] == center[0] and block[1] > center[1]:
-                        block[0] -= 1
-                        block[1] -= 1
-                    elif block[0] < center[0] and block[1] == center[1]:
-                        block[0] += 1
-                        block[1] -= 1
-        return piece
-    elif type_piece == 'S':
-        #center = get_center(piece, type_piece)
-        center = piece[1]
-        if numOfrotations % 2 != 0:
-            for block in piece:
-                if block != center:         # atençao à ordem das peças
-                    if block[0] == center[0] and block[1] == center[1] - 1:
-                        block[0] -= 1
-                        block[1] += 2
-                    if block[0] == center[0] + 1 and block[1] == center[1] + 1:
-                        block[0] -= 1
-        return piece
-    elif type_piece == 'Z':
-        #center = get_center(piece, type_piece)
-        center = piece[2]
-        if numOfrotations % 2 != 0:
-            for block in piece:
-                if block != center:         # atençao à ordem das peças
-                    if block[0] == center[0] and block[1] == center[1] - 1:
-                        block[0] += 1
-                        block[1] += 2
-                    if block[0] == center[0] - 1 and block[1] == center[1] + 1:
-                        block[0] += 1
-        return piece
-    elif type_piece == 'L' or type_piece == 'J':
-        #center = get_center(piece, type_piece)
-        if type_piece == 'L':
-            center = piece[1]  
-        elif type_piece == 'J':
-            center = piece[2]      
-        
-        for i in range(numOfrotations):
-            for block in piece:
-                if block != center:
-                    if block[0] == center[0] and block[1] < center[1]:
-                        block[0] += 1
-                        block[1] += 1 
-                    elif block[0] > center[0] and block[1] == center[1]:
-                        block[0] -= 1 
-                        block[1] += 1 
-                    elif block[0] == center[0] and block[1] > center[1]:
-                        block[0] -= 1
-                        block[1] -= 1
-                    elif block[0] < center[0] and block[1] == center[1]:
-                        block[0] += 1
-                        block[1] -= 1
-                    else:
-                        if block[0] > center[0] and block[1] < center[1]:        # trata se do bloco "cauda", o unico que nao está diretamente conectado ao centro 
-                            block[1] += 2
-                        elif block[0] > center[0] and block[1] > center[1]:
-                            block[0] -= 2
-                        elif block[0] < center[0] and block[1] > center[1]:
-                            block[1] -= 2
-                        elif block[0] < center[0] and block[1] < center[1]:
-                            block[0] += 2
-        return piece
-    elif type_piece == 'I':
-        #center = get_center(piece, type_piece)
-        center = piece[2]                              
-        if numOfrotations % 2 != 0:    
-            for block in piece:
-                if block != center:
-                    if block[0] == center[0] - 2:
-                        block[0] += 2
-                        block[1] -= 2
-                    elif block[0] == center[0] - 1:
-                        block[0] += 1
-                        block[1] -= 1
-                    else:
-                        block[0] -= 1
-                        block[1] += 1
-        return piece
 
 # DO NOT CHANGE THE LINES BELLOW
 # You can change the default values using the command line, example:
