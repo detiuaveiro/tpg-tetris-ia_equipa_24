@@ -62,7 +62,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 
                 flag = False
                 
-                if(piece == None):
+                while(piece == None):
                     state = json.loads(
                         await websocket.recv()
                     )  # receive game update, this must be called timely or your game will get out of sync with the server
@@ -291,6 +291,7 @@ def rotate(piece, type_piece, numOfrotations):
                         block[0] -= 1
                         block[1] += 1
         return piece
+    return piece
     
 
 def get_aggregate_height(game):
