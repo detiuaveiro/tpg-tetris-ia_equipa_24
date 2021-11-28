@@ -21,7 +21,7 @@ async def agent_loop(server_address="localhost:8000", agent_name="97931"):
                     await websocket.recv()
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
                 
-                # game=[]
+                piece = None
                 print(state['score'])
                 
                 if 'piece' in state: # and "game" in state:
@@ -90,14 +90,11 @@ def get_rows(game):
     return rows
 
 def rotate(piece, type_piece, numOfrotations):
-    #type_piece = get_piece(piece)
-    #print(type_piece)
     piece = deepcopy(piece)
     center = [0,0]     
     if type_piece == 'O':
         return piece
     elif type_piece == 'T':
-        #center = get_center(piece, type_piece)
         center = piece[1]
         for i in range(numOfrotations):
             for block in piece:
@@ -116,11 +113,10 @@ def rotate(piece, type_piece, numOfrotations):
                         block[1] -= 1
         return piece
     elif type_piece == 'S':
-        #center = get_center(piece, type_piece)
         center = piece[1]
         if numOfrotations % 2 != 0:
             for block in piece:
-                if block != center:         # atençao à ordem das peças
+                if block != center:         
                     if block[0] == center[0] and block[1] == center[1] - 1:
                         block[0] -= 1
                         block[1] += 2
@@ -128,11 +124,10 @@ def rotate(piece, type_piece, numOfrotations):
                         block[0] -= 1
         return piece
     elif type_piece == 'Z':
-        #center = get_center(piece, type_piece)
         center = piece[2]
         if numOfrotations % 2 != 0:
             for block in piece:
-                if block != center:         # atençao à ordem das peças
+                if block != center:         
                     if block[0] == center[0] and block[1] == center[1] - 1:
                         block[0] += 1
                         block[1] += 2
@@ -140,7 +135,6 @@ def rotate(piece, type_piece, numOfrotations):
                         block[0] += 1
         return piece
     elif type_piece == 'L' or type_piece == 'J':
-        #center = get_center(piece, type_piece)
         if type_piece == 'L':
             center = piece[1]  
         elif type_piece == 'J':
@@ -172,7 +166,6 @@ def rotate(piece, type_piece, numOfrotations):
                             block[0] += 2
         return piece
     elif type_piece == 'I':
-        #center = get_center(piece, type_piece)
         center = piece[2]                              
         if numOfrotations % 2 != 0:    
             for block in piece:
@@ -265,7 +258,6 @@ def simulate_all_possibilities(piece, game, type_piece):
     if piece == None:
         return None
     original_piece_real = piece
-    #type_piece = get_piece(piece)
     numbOfrotations=0
     iterations = 1
     original_piece = []
