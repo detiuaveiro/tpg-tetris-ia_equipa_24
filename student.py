@@ -1,67 +1,34 @@
+# Bruno Silva 97931, Francisco Cardita 97640, Pedro Guerra 98610
 import asyncio
 import getpass
 import json
 from logging import NullHandler
 import os
 import websockets
-
-# import game
-# from shape import SHAPES 
 from copy import deepcopy
-
-# Next 4 lines are not needed for AI agents, please remove them from your code!
-#import pygame
-
-# pygame.init()
-# program_icon = pygame.image.load("data/icon2.png")
-# pygame.display.set_icon(program_icon)
-
-async def agent_loop(server_address="localhost:8000", agent_name="student"):
+from pieces import PIECES, I, L, S, T, J, O, Z
+ 
+async def agent_loop(server_address="localhost:8000", agent_name="97931"):
     async with websockets.connect(f"ws://{server_address}/player") as websocket:
 
         # Receive information about static game properties
         await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
-
-        # Next 3 lines are not needed for AI agent
-        # SCREEN = pygame.display.set_mode((299, 123))
-        # SPRITES = pygame.image.load("data/pad.png").convert_alpha()
-        # SCREEN.blit(SPRITES, (0, 0))
-
-        # state = json.loads(
-        #             await websocket.recv()
-        #         )  # receive game update, this must be called timely or your game will get out of sync with the server
-        #print(state)
-        # piece=state["piece"]
-        # game=state["game"]
-        # print(get_piece(piece))
-        # ideal_pos_piece = simulate_all_possibilities(piece,game)
-        # print(ideal_pos_piece)
-        # translate = compare_pieces(piece, ideal_pos_piece)
-        # keys = get_keys(translate)
-        # print(keys)
-
-        # for key in keys:
-        #     state = json.loads(
-        #             await websocket.recv()
-        #         )  # receive game update, this must be called timely or your game will get out of sync with the server                
-        #     await websocket.send(
-        #         json.dumps({"cmd": "key", "key": key})
-        #     )  # send key command to server - you must implement this send in the AI agent
         
+        piece = None
         while True:
             try:
                 state = json.loads(
                     await websocket.recv()
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
-                piece = None
+                
                 # game=[]
                 print(state['score'])
+                
                 if 'piece' in state: # and "game" in state:
                     piece=state['piece']
                     game=state['game']
                 
                 flag = False
-                
                 while(piece == None):
                     state = json.loads(
                         await websocket.recv()
@@ -70,20 +37,11 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                         piece=state['piece']
                         game=state['game']
                         type_piece = get_piece(piece)
-                    #print("Piece: ")
-                    #print(piece)
-                    #print(get_piece(piece))
-                    #print(get_rows(game))
+                    
                     if piece != None:
                         ideal_pos_rot_piece = simulate_all_possibilities(piece,game, type_piece)
-                    #print("Ideal Piece: ")
-                    #print(ideal_pos_rot_piece[0])
-                    #print(ideal_pos_rot_piece[1])
-                    #if ideal_pos_rot_piece != None:
                         translate = compare_pieces(rotate(piece, type_piece, ideal_pos_rot_piece[1]), ideal_pos_rot_piece[0])
                         keys = get_keys(translate, ideal_pos_rot_piece[1])
-                    #print(keys)
-                    #print("\n")
                         flag = True
 
                 if(flag):
@@ -99,63 +57,6 @@ async def agent_loop(server_address="localhost:8000", agent_name="student"):
                 print("Server has cleanly disconnected us")
                 return
 
-            # Next line is not needed for AI agent
-            #pygame.display.flip()
-
-
-vectors=[[0,1], [0,2], [0,3], [0,4], 
-        [1,0], [1,1], [1,2], [1,3], [1,4], 
-        [2,0], [2,1], [2,2], [2,3], [2,4],
-        [3,0], [3,1], [3,2], [3,3], [3,4],
-        [4,0], [4,1], [4,2], [4,3], [4,4],
-        [-1,1], [-1,2], [-1,3], [-1,4], 
-        [-2,1], [-2,2], [-2,3], [-2,4],
-        [-3,1], [-3,2], [-3,3], [-3,4],
-        [-4,1], [-4,2], [-4,3], [-4,4]]
-
-def get_all_positions(piece):
-    if(piece == None):
-        return None
-
-    possible_positions=[piece]
-    for v in vectors:
-        new_piece=[]
-        flag = True
-        for block in piece:
-            x = block[0] + v[0]
-            y = block[1] + v[1]
-            if(x >= 0 and x < 6 and y < 6 and y >= 0):
-                new_piece += [[x, y]]
-            else:
-                flag = False
-                break
-        
-        if(flag):
-            possible_positions += [new_piece]
-
-        new_piece=[]
-        flag = True
-        for block in piece:
-            x = block[0] - v[0]
-            y = block[1] - v[1]
-            if(x >= 0 and x < 6 and y < 6 and y >= 0):
-                new_piece += [[x, y]]
-            else:
-                flag = False
-                break
-
-        if(flag):
-            possible_positions += [new_piece]
-    return possible_positions
-
-I = get_all_positions([[2,2],[3,2],[4,2],[5,2]])
-L = get_all_positions([[2,1],[2,2],[2,3],[3,3]])
-S = get_all_positions([[2,1],[2,2],[3,2],[3,3]])
-T = get_all_positions([[4,2],[4,3],[5,3],[4,4]])
-J = get_all_positions([[2,1],[3,1],[2,2],[2,3]])
-O = get_all_positions([[3,3],[4,3],[3,4],[4,4]])
-Z = get_all_positions([[2,1],[1,2],[2,2],[1,3]])
-PIECES=[I,L,S,T,J,O,Z]
 
 def get_piece(piece):
     for p in PIECES:
@@ -178,10 +79,8 @@ def get_piece(piece):
     return 'Not found'
 
 def get_rows(game):
-    rows=[[0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0], [0,0,0,0,0,0,0,0,0]]
-   
+    rows=[[0,0,0,0,0,0,0,0,0] for i in range(30)]
+
     for p in game:
         rows[p[1]][p[0]] = 1
     
@@ -189,9 +88,6 @@ def get_rows(game):
         del rows[i][0]
 
     return rows
-
-def get_center(piece, type_piece):
-    return [0, 0]
 
 def rotate(piece, type_piece, numOfrotations):
     #type_piece = get_piece(piece)
@@ -296,14 +192,12 @@ def rotate(piece, type_piece, numOfrotations):
 
 def get_aggregate_height(game):
     rows = get_rows(game)
-    #altura_colunas=[0,0,0,0,0,0,0,0]
     column_height = 0
     aggregate_height = 0
     for x in range(8):
         for y in range(30):
             if rows[29-y][x] == 1:
                 column_height = y + 1
-            #altura_colunas[x] = column_height
         aggregate_height += column_height
     return aggregate_height
 
@@ -323,22 +217,8 @@ def get_bumpiness(game):
     total_bumpiness = 0
     for i in range(7):
         total_bumpiness += abs(columns_heigths[i] - columns_heigths[i+1])
+    
     return total_bumpiness
-
-# def numberOfHoles(game):
-#     rows = get_rows(game)
-#     holesColumn = 0
-#     totalHoles = 0
-#     holesPerColumn = [0,0,0,0,0,0,0,0]
-#     for x in range(8):
-#         for y in range(30):
-#             if rows[29-y][x] == 0: #and rows[29-y-1][x] == 1:
-#                 for y2 in range(y,30):
-#                     if rows[29-y2][x] == 1:
-#                         holesColumn = y2 - y -1 
-#                     holesPerColumn[x] = holesColumn
-#         totalHoles += holesColumn
-#     return holesPerColumn
 
 def get_numberOfHoles(game):
     rows = get_rows(game)
@@ -405,16 +285,12 @@ def simulate_all_possibilities(piece, game, type_piece):
             piece = rotate(original_piece_real, type_piece, i)
         
         x_min = 8
-        x_max = 0
-        for block in piece:     #check the minimum and maximum x coordenate of the blocks 
+        for block in piece:     #check the minimum x coordenate of the blocks  
             if block[0] < x_min:
                 x_min = block[0]
-            if block[0] > x_max:
-                x_max = block[0]
         
-        #width = x_max - x_min
-        ini_translate = 1 - x_min
-        piece = translate(piece, ini_translate - 1)
+        ini_translate = 1 - x_min    
+        piece = translate(piece, ini_translate - 1) # put the piece's block on the left on x=0
         original_piece.append(translate(piece,1))
         numberOfpositions = 0
         while piece[0][0] < 8 and piece[1][0] < 8 and piece[2][0] < 8 and piece[3][0] < 8:
@@ -430,7 +306,6 @@ def simulate_all_possibilities(piece, game, type_piece):
         total_numberOfpositions.append(numberOfpositions)
 
     ind = scores.index(max(scores))
-    numberOfpossibilities = len(scores)
     if ind < total_numberOfpositions[0]:
         piece = translate(original_piece[0], ind)
         return [piece, 0]                       # Retorna a peça e o numero de rotaçoes a executar
@@ -444,7 +319,7 @@ def simulate_all_possibilities(piece, game, type_piece):
         piece = translate(original_piece[3], ind - (total_numberOfpositions[0] + total_numberOfpositions[1] + total_numberOfpositions[2]))
         return [piece, 3]
     
-
+# The heuristics were based on the information of this site: https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/?fbclid=IwAR0ysYYxA2_lOfirvRJ5etTZ6UsEEGKM_c9XfKmimWM9h3hd-NvICGDkTts
 def calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness):
     a = -0.51006
     b = 0.760666
@@ -453,21 +328,18 @@ def calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness):
     return total_height*a + completeLines*b + numberOfHoles*c + bumpiness*d
 
 def translate(piece, value):
-    piece_clone = deepcopy(piece)
-    for block in piece_clone:
-        block[0] += value
-    return piece_clone
+    return [[block[0] + value, block[1]] for block in piece]
 
 def compare_pieces(original_piece, new_piece):
     if original_piece == None or new_piece == None:
         return 0
-    translate = new_piece[0][0] - original_piece[0][0]
-    return translate
+    return new_piece[0][0] - original_piece[0][0]
 
 def get_keys(translate, numberOfrotations):
     keys = []
     for i in range(numberOfrotations):
         keys.append("w")
+          
     if translate < 0:
         for i in range(abs(translate)):
             keys.append("a")
