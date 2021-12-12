@@ -22,11 +22,13 @@ async def agent_loop(server_address="localhost:8000", agent_name="97931"):
                 )  # receive game update, this must be called timely or your game will get out of sync with the server
                 
                 piece = None
-                print(state['score'])
+                next_pieces = None
+                #print(state['score'])
                 
                 if 'piece' in state: # and "game" in state:
                     piece=state['piece']
                     game=state['game']
+                    next_pieces = state['next_pieces']
                 
                 flag = False
                 while(piece == None):
@@ -37,9 +39,10 @@ async def agent_loop(server_address="localhost:8000", agent_name="97931"):
                         piece=state['piece']
                         game=state['game']
                         type_piece = get_piece(piece)
+                        next_pieces = state['next_pieces']
                     
                     if piece != None:
-                        ideal_pos_rot_piece = simulate_all_possibilities(piece,game, type_piece)
+                        ideal_pos_rot_piece = simulate_all_possibilities(piece,game, type_piece, next_pieces)
                         translate = compare_pieces(rotate(piece, type_piece, ideal_pos_rot_piece[1]), ideal_pos_rot_piece[0])
                         keys = get_keys(translate, ideal_pos_rot_piece[1])
                         flag = True
@@ -183,8 +186,7 @@ def rotate(piece, type_piece, numOfrotations):
     return piece
     
 
-def get_aggregate_height(game):
-    rows = get_rows(game)
+def get_aggregate_height(rows):
     column_height = 0
     aggregate_height = 0
     for x in range(8):
@@ -194,8 +196,7 @@ def get_aggregate_height(game):
         aggregate_height += column_height
     return aggregate_height
 
-def get_columns_height(game):
-    rows = get_rows(game)
+def get_columns_height(rows):
     heightPerColumn=[0,0,0,0,0,0,0,0]
     column_height = 0
     for x in range(8):
@@ -205,17 +206,18 @@ def get_columns_height(game):
             heightPerColumn[x] = column_height
     return heightPerColumn
 
-def get_bumpiness(game):
-    columns_heigths = get_columns_height(game)
+def get_bumpiness(rows, columns_heigths=None):
+    if columns_heigths == None:
+        columns_heigths = get_columns_height(rows)
     total_bumpiness = 0
     for i in range(7):
         total_bumpiness += abs(columns_heigths[i] - columns_heigths[i+1])
     
     return total_bumpiness
 
-def get_numberOfHoles(game):
-    rows = get_rows(game)
-    columns_heigths = get_columns_height(game)
+def get_numberOfHoles(rows):
+    rows = deepcopy(rows)
+    columns_heigths = get_columns_height(rows)
     for x in range(8):
         height = columns_heigths[x]
         for y in range(height, 30):
@@ -228,8 +230,7 @@ def get_numberOfHoles(game):
                 countHoles += 1
     return countHoles
 
-def complete_lines(game):
-    rows = get_rows(game)
+def complete_lines(rows):
     numberOflines = 0
     for r in rows:
         if sum(r) == 8:
@@ -254,15 +255,18 @@ def simulate_fall(piece, game):
     sim_game += piece_clone
     return sim_game 
 
-def simulate_all_possibilities(piece, game, type_piece):
+def simulate_all_possibilities(piece, game, type_piece, next_pieces):
     if piece == None:
         return None
     original_piece_real = piece
     numbOfrotations=0
     iterations = 1
     original_piece = []
-    scores=[]
+    scores = []
     total_numberOfpositions=[]
+    flagSOS = False
+    existI = False
+    sum = 0
     if type_piece == 'O':
         numbOfrotations = 0
     elif type_piece == 'I' or type_piece == 'S' or type_piece == 'Z':
@@ -271,7 +275,26 @@ def simulate_all_possibilities(piece, game, type_piece):
         numbOfrotations = 3
 
     iterations = numbOfrotations + 1
-        
+    rows1 = get_rows(game)
+    columns_height = get_columns_height(rows1)
+    height = max(columns_height)
+    # Check if any "tower" is being made, if it is flagSOS becomes True
+    if height >= 15 and type_piece != 'O':
+        pos = columns_height.index(min(columns_height))
+        if pos < 2 or pos > 5:
+            bumpiness1 = get_bumpiness(rows1, columns_height)
+            if bumpiness1 >= 15:
+                for p in next_pieces:
+                    if p in I:
+                        existI = True
+                        break
+                if existI == False: 
+                    flagSOS = True
+                    #print("SOS")
+    
+    if flagSOS:
+        scores = [(-2000) for i in range(32)]
+
     for i in range(iterations):
         if i > 0:
             piece = rotate(original_piece_real, type_piece, i)
@@ -280,24 +303,77 @@ def simulate_all_possibilities(piece, game, type_piece):
         for block in piece:     #check the minimum x coordenate of the blocks  
             if block[0] < x_min:
                 x_min = block[0]
-        
+
         ini_translate = 1 - x_min    
         piece = translate(piece, ini_translate - 1) # put the piece's block on the left on x=0
         original_piece.append(translate(piece,1))
         numberOfpositions = 0
-        while piece[0][0] < 8 and piece[1][0] < 8 and piece[2][0] < 8 and piece[3][0] < 8:
-            piece = translate(piece, 1)
-            game1 = simulate_fall(piece, game)
-            total_height = get_aggregate_height(game1)
-            completeLines = complete_lines(game1)
-            numberOfHoles = get_numberOfHoles(game1)
-            bumpiness = get_bumpiness(game1)
-            score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
-            scores.append(score)
-            numberOfpositions += 1
-        total_numberOfpositions.append(numberOfpositions)
 
+        if(flagSOS):
+            piece = translate(piece, 1)
+            x_max = 0
+            for block in piece:     #check the minimum x coordenate of the blocks  
+                if block[0] > x_max:
+                    x_max = block[0]
+            translations = 8 - x_max 
+            numberOfpositions = translations + 1
+            total_numberOfpositions.append(numberOfpositions)
+            
+            if pos < 2:
+                game1 = simulate_fall(piece, game)
+                rows = get_rows(game1)
+                total_height = get_aggregate_height(rows)
+                completeLines = complete_lines(rows)
+                numberOfHoles = get_numberOfHoles(rows)
+                bumpiness = get_bumpiness(rows)
+                score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
+                if i == 0:
+                    scores[0] = score
+                elif i == 1:
+                    scores[total_numberOfpositions[0]] = score
+                elif i == 2:
+                    scores[total_numberOfpositions[0]+total_numberOfpositions[1]] = score
+                else:
+                    scores[total_numberOfpositions[0]+total_numberOfpositions[1]+total_numberOfpositions[2]] = score
+            else:
+                piece = translate(piece, translations)
+                game1 = simulate_fall(piece, game)
+                rows = get_rows(game1)
+                total_height = get_aggregate_height(rows)
+                completeLines = complete_lines(rows)
+                numberOfHoles = get_numberOfHoles(rows)
+                bumpiness = get_bumpiness(rows)
+                score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
+                if i == 0:
+                    scores[total_numberOfpositions[0]-1] = score
+                elif i == 1:
+                    scores[total_numberOfpositions[0]+total_numberOfpositions[1]-1] = score
+                elif i == 2:
+                    scores[total_numberOfpositions[0]+total_numberOfpositions[1]+total_numberOfpositions[2]-1] = score
+                else:
+                    scores[total_numberOfpositions[0]+total_numberOfpositions[1]+total_numberOfpositions[2]+total_numberOfpositions[3]-1] = score
+
+        else:
+            while piece[0][0] < 8 and piece[1][0] < 8 and piece[2][0] < 8 and piece[3][0] < 8:
+                piece = translate(piece, 1)
+                game1 = simulate_fall(piece, game)
+                rows = get_rows(game1)
+                total_height = get_aggregate_height(rows)
+                completeLines = complete_lines(rows)
+                numberOfHoles = get_numberOfHoles(rows)
+                bumpiness = get_bumpiness(rows)
+                score = calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness)
+                scores.append(score)
+                numberOfpositions += 1
+            total_numberOfpositions.append(numberOfpositions)
+        sum += total_numberOfpositions[i]
+    
+    if flagSOS and sum > len(scores):
+        for i in range(32-sum):
+            del scores[sum+i]
+             
     ind = scores.index(max(scores))
+    
     if ind < total_numberOfpositions[0]:
         piece = translate(original_piece[0], ind)
         return [piece, 0]                       # Retorna a peça e o numero de rotaçoes a executar
@@ -311,7 +387,7 @@ def simulate_all_possibilities(piece, game, type_piece):
         piece = translate(original_piece[3], ind - (total_numberOfpositions[0] + total_numberOfpositions[1] + total_numberOfpositions[2]))
         return [piece, 3]
     
-# The heuristics were based on the information of this site: https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/?fbclid=IwAR0ysYYxA2_lOfirvRJ5etTZ6UsEEGKM_c9XfKmimWM9h3hd-NvICGDkTts
+# The formula to calculate the score was based on the information of this site: https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/?fbclid=IwAR0ysYYxA2_lOfirvRJ5etTZ6UsEEGKM_c9XfKmimWM9h3hd-NvICGDkTts
 def calculateHeuristic(total_height, completeLines, numberOfHoles, bumpiness):
     a = -0.51006
     b = 0.760666
