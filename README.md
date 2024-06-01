@@ -9,7 +9,17 @@ Make sure you are running Python 3.7 or higher
 
 *Tip: you might want to create a virtualenv first*
 
-## How to play
+## How to deploy the developed agent
+
+open 3 terminals:
+
+`$ python3 server.py`
+
+`$ python3 viewer.py`
+
+`$ python3 student.py`
+
+## How to play 
 
 open 3 terminals:
 
